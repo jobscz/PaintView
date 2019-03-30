@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(1, 10, Menu.NONE, "形状填充模式");
         menu.add(1, 0, Menu.NONE, "橡皮擦");
         menu.add(1, 1, Menu.NONE, "正常");
         menu.add(1, 2, Menu.NONE, "直线");
@@ -35,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         menu.add(1, 6, Menu.NONE, "圆角矩形");
         menu.add(1, 7, Menu.NONE, "等腰三角形");
         menu.add(1, 8, Menu.NONE, "直角三角形");
-        menu.add(1, 9, Menu.NONE, "清屏");
+        menu.add(1, 9, Menu.NONE, "箭头");
         return true;
     }
 
@@ -76,7 +77,10 @@ public class MainActivity extends AppCompatActivity {
                 paintView.setDrawMode(PaintView.DRAW_MODE_TRIANGLE_TWO);
                 break;
             case 9:
-                paintView.clear();
+                paintView.setDrawMode(PaintView.DRAW_MODE_ARROW);
+                break;
+            case 10:
+                paintView.setFillStyle(!paintView.isFillStyle());
                 break;
 
         }

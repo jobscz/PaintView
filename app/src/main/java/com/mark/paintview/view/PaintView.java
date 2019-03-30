@@ -13,9 +13,7 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-
 import com.mark.paintview.PaintData;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -35,6 +33,7 @@ public class PaintView extends View {
     public static final int DRAW_MODE_ROUND_RECT = 6;//圆角矩形
     public static final int DRAW_MODE_TRIANGLE_ONE = 7;//等腰三角形
     public static final int DRAW_MODE_TRIANGLE_TWO = 8;//直角三角形
+    public static final int DRAW_MODE_ARROW = 9;//箭头
 
 
     Paint mStrokePaint, mErasePaint;
@@ -161,9 +160,9 @@ public class PaintView extends View {
      */
     void handleUp() {
         if (drawMode == DRAW_MODE_ERASE) {
-            mUndoList.add(new PaintData(new Path(mDrawPath),new Paint(mErasePaint)));
+            mUndoList.add(new PaintData(new Path(mDrawPath), new Paint(mErasePaint)));
         } else if (drawMode == DRAW_MODE_NORMAL) {
-            mUndoList.add(new PaintData(new Path(mDrawPath),new Paint(mStrokePaint)));
+            mUndoList.add(new PaintData(new Path(mDrawPath), new Paint(mStrokePaint)));
         } else if (drawMode == DRAW_MODE_LINE) {
             mUndoList.add(new PaintData(new Path(shapePath), new Paint(mStrokePaint)));
             drawShapePath();
@@ -188,6 +187,9 @@ public class PaintView extends View {
         } else if (drawMode == DRAW_MODE_TRIANGLE_TWO) {
             mUndoList.add(new PaintData(new Path(shapePath), new Paint(mStrokePaint)));
             drawShapePath();
+        } else if (drawMode == DRAW_MODE_ARROW) {
+            mUndoList.add(new PaintData(new Path(shapePath), new Paint(mStrokePaint)));
+            drawShapePath();
         }
     }
 
@@ -199,6 +201,9 @@ public class PaintView extends View {
         }
     }
 
+    /**
+     * 手指抬起时绘制最终形状
+     */
     void drawShapePath() {
         mBufferCanvas.drawPath(shapePath, mStrokePaint);
         shapePath.reset();
@@ -232,6 +237,8 @@ public class PaintView extends View {
             drawTriangleOne(canvas);
         } else if (drawMode == DRAW_MODE_TRIANGLE_TWO) {
             drawTriangleTwo(canvas);
+        } else if (drawMode == DRAW_MODE_ARROW) {
+            drawArrow(canvas);
         }
     }
 
@@ -242,10 +249,10 @@ public class PaintView extends View {
      * @param canvas
      */
     void drawLine(Canvas canvas) {
-        canvas.drawLine(startX, startY, endX, endY, mStrokePaint);
         shapePath.reset();
         shapePath.moveTo(startX, startY);
         shapePath.lineTo(endX, endY);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
     /**
@@ -256,36 +263,48 @@ public class PaintView extends View {
     void drawOval(Canvas canvas) {
         shapeRectF.setEmpty();
         shapeRectF.set(startX, startY, endX, endY);
-        canvas.drawOval(shapeRectF, mStrokePaint);
         shapePath.reset();
-        shapePath.addRect(shapeRectF, Path.Direction.CCW);
+        shapePath.addOval(shapeRectF, Path.Direction.CCW);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
+    /**
+     * 绘制正圆
+     * @param canvas
+     */
     void drawCircle(Canvas canvas) {
         float cx = (startX + endX) / 2;
         float cy = (startY + endY) / 2;
         float radius = Math.abs(startX - endX) / 2;
-        canvas.drawCircle(cx, cy, radius, mStrokePaint);
         shapePath.reset();
         shapePath.addCircle(cx, cy, radius, Path.Direction.CCW);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
+    /**
+     * 绘制圆角矩形
+     * @param canvas
+     */
     void drawRoundRect(Canvas canvas) {
         shapeRectF.setEmpty();
         shapeRectF.set(startX, startY, endX, endY);
-        float rx = 10;
-        float ry = 10;
-        canvas.drawRoundRect(shapeRectF, rx, ry, mStrokePaint);
+        float rx = 60;
+        float ry = 60;
         shapePath.reset();
         shapePath.addRoundRect(shapeRectF, rx, ry, Path.Direction.CCW);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
+    /**
+     * 绘制矩形
+     * @param canvas
+     */
     void drawRect(Canvas canvas) {
         shapeRectF.setEmpty();
         shapeRectF.set(startX, startY, endX, endY);
-        canvas.drawRect(shapeRectF, mStrokePaint);
         shapePath.reset();
-        shapePath.addRect(shapeRectF, Path.Direction.CCW);
+        shapePath.addRoundRect(shapeRectF, 0, 0, Path.Direction.CCW);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
     /**
@@ -295,8 +314,27 @@ public class PaintView extends View {
      */
     float[] points = new float[12];
 
-    void drawTriangleTwo(Canvas canvas) {
+    void drawTriangleOne(Canvas canvas) {
+        points[0] = (startX + endX) / 2;
+        points[1] = startY;
+        points[2] = endX;
+        points[3] = endY;
 
+        points[4] = endX;
+        points[5] = endY;
+        points[6] = startX;
+        points[7] = endY;
+
+        points[8] = startX;
+        points[9] = endY;
+        points[10] = (startX + endX) / 2;
+        points[11] = startY;
+        shapePath.reset();
+        shapePath.moveTo(points[0], points[1]);
+        shapePath.lineTo(points[2], points[3]);
+        shapePath.lineTo(points[6], points[7]);
+        shapePath.lineTo(points[0], points[1]);
+        canvas.drawPath(shapePath, mStrokePaint);
     }
 
     /**
@@ -304,8 +342,35 @@ public class PaintView extends View {
      *
      * @param canvas
      */
-    void drawTriangleOne(Canvas canvas) {
+    void drawTriangleTwo(Canvas canvas) {
+        points[0] = startX;
+        points[1] = startY;
+        points[2] = endX;
+        points[3] = endY;
 
+        points[4] = endX;
+        points[5] = endY;
+        points[6] = startX;
+        points[7] = endY;
+
+        points[8] = startX;
+        points[9] = endY;
+        points[10] = startX;
+        points[11] = startY;
+        shapePath.reset();
+        shapePath.moveTo(points[0], points[1]);
+        shapePath.lineTo(points[2], points[3]);
+        shapePath.lineTo(points[6], points[7]);
+        shapePath.lineTo(points[0], points[1]);
+        canvas.drawPath(shapePath, mStrokePaint);
+    }
+
+    /**
+     * 绘制箭头
+     * @param canvas
+     */
+    void drawArrow(Canvas canvas) {
+        // TODO: 19-3-30 箭头
     }
 
 
@@ -344,17 +409,24 @@ public class PaintView extends View {
         this.drawMode = mode;
     }
 
-    public void clear(){
+
+    public void setFillStyle(boolean isFill){
+        mStrokePaint.setStyle(isFill ? Paint.Style.FILL:Paint.Style.STROKE);
+    }
+    public boolean isFillStyle(){
+        return mStrokePaint.getStyle() != Paint.Style.STROKE;
+    }
+
+    public void clear() {
         clearList();
-        mBufferCanvas.drawColor(0,PorterDuff.Mode.SRC_OUT);
+        mBufferCanvas.drawColor(0, PorterDuff.Mode.SRC_OUT);
         invalidate();
     }
 
-    void clearList(){
+    void clearList() {
         mUndoList.clear();
         mRedoList.clear();
     }
-
 
 
     /**
